@@ -1,0 +1,88 @@
+// Simple display test - bypasses LVGL
+// Rename to main.cpp to test if TFT hardware access works
+
+#include "config.h"
+
+TTGOClass *ttgo;
+
+void setup()
+{
+    Serial.begin(115200);
+    delay(1000);
+    
+    Serial.println("\n=== LilyPi V1 Display Hardware Test ===");
+
+    // Get watch instance
+    ttgo = TTGOClass::getWatch();
+    Serial.println("1. TTGOClass instance obtained");
+
+    // Initialize the hardware
+    ttgo->begin();
+    Serial.println("2. Hardware initialized with begin()");
+
+    // Turn on the backlight
+    ttgo->openBL();
+    Serial.println("3. Backlight turned on");
+
+    // Set brightness to maximum
+    ttgo->setBrightness(255);
+    Serial.println("4. Brightness set to 255");
+
+    // Get TFT instance
+    TFT_eSPI *tft = ttgo->tft;
+    Serial.println("5. TFT instance obtained");
+
+    // Initialize TFT
+    tft->init();
+    Serial.println("6. TFT init() called");
+
+    // Test 1: Fill screen with WHITE
+    Serial.println("\n>>> Filling screen WHITE...");
+    tft->fillScreen(TFT_WHITE);
+    delay(2000);
+
+    // Test 2: Fill screen with RED
+    Serial.println(">>> Filling screen RED...");
+    tft->fillScreen(TFT_RED);
+    delay(2000);
+
+    // Test 3: Fill screen with GREEN
+    Serial.println(">>> Filling screen GREEN...");
+    tft->fillScreen(TFT_GREEN);
+    delay(2000);
+
+    // Test 4: Fill screen with BLUE  
+    Serial.println(">>> Filling screen BLUE...");
+    tft->fillScreen(TFT_BLUE);
+    delay(2000);
+
+    // Test 5: Draw text
+    Serial.println(">>> Drawing text...");
+    tft->fillScreen(TFT_BLACK);
+    tft->setTextColor(TFT_WHITE, TFT_BLACK);
+    tft->setTextSize(3);
+    tft->setCursor(20, 100);
+    tft->println("LilyPi V1");
+    tft->setCursor(20, 140);
+    tft->println("ILI9481");
+    tft->setCursor(20, 180);
+    tft->println("TEST OK!");
+
+    Serial.println("\n=== Test Complete ===");
+    Serial.println("If you see colors and text, display hardware is working!");
+    Serial.println("If screen is blank, check:");
+    Serial.println("  - Display connector");
+    Serial.println("  - Correct driver (ILI9481 vs ST7796S)");
+    Serial.println("  - Backlight circuit");
+}
+
+void loop()
+{
+    // Blink to show code is running
+    static unsigned long last = 0;
+    if (millis() - last > 1000) {
+        last = millis();
+        Serial.println("Loop running...");
+    }
+    delay(100);
+}

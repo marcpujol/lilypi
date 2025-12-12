@@ -1,0 +1,78 @@
+
+Parámetros del producto
+Chip
+
+ESP32-WROVER
+
+LCD
+
+Pantalla táctil capacitiva de 3,5 pulgadas ILI9481 GT911
+
+USB a TTL
+
+CH9102F
+
+PSRAM
+
+16MB
+
+Flash
+
+8MB
+
+Relé
+
+HFD3 5V 2A
+
+Conector relé
+
+5.08
+
+Entrada de DC-DC
+
+5-12V
+
+Especificaciones del bloque DC
+
+5.5X2.1
+
+Entrada de TYPE-C
+
+5V
+
+Salida USB
+
+5V 1A
+
+Especificaciones de la batería
+
+Batería de litio 3,7 V
+
+Interruptor de batería
+
+Interruptores de palanca
+
+Botón
+
+Botón RST, botón personalizado
+
+RTC
+
+PCF8563
+
+Pin de extensión
+
+2,54 2X20
+
+Puerto de expansión USB de doble capa
+
+Salida 5V 1A
+
+Interfaz USB de doble capa
+
+
+
+Interfaces:
+
+Battery = IO35
+Screen = ILI9481 GT911 , SDA=IO21, SCL=IO22, INT=IO34
