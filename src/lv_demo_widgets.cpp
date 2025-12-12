@@ -13,7 +13,6 @@
  *  STATIC PROTOTYPES
  **********************/
 static void controls_create(lv_obj_t *parent);
-static void visuals_create(lv_obj_t *parent);
 static void selectors_create(lv_obj_t *parent);
 static void slider_event_cb(lv_obj_t *slider, lv_event_t e);
 static void ta_event_cb(lv_obj_t *ta, lv_event_t e);
@@ -81,7 +80,6 @@ void lv_demo_widgets(void)
 #endif
 
     t1 = lv_tabview_add_tab(tv, "Controls");
-    t2 = lv_tabview_add_tab(tv, "Visuals");
     t3 = lv_tabview_add_tab(tv, "Selectors");
 
 
@@ -91,7 +89,6 @@ void lv_demo_widgets(void)
     lv_style_set_margin_top(&style_box, LV_STATE_DEFAULT, LV_DPX(30));
 
     controls_create(t1);
-    visuals_create(t2);
     selectors_create(t3);
 
 #if LV_DEMO_WIDGETS_SLIDESHOW
