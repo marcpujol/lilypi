@@ -1,14 +1,18 @@
 #include "lvgl/lvgl.h"
+#include "../fonts/lightbulb.h"  // Fix: correct path to lightbulb.h
 #include <stdio.h>
+#include <string.h>
 
-// Declare FontAwesome font
+// Declare FontAwesome fonts
 LV_FONT_DECLARE(lv_font_fontawesome_16);
+LV_FONT_DECLARE(lv_font_fontawesome_32);
+
+// Declare Montserrat fonts for temperature values
+LV_FONT_DECLARE(lv_font_montserrat_22);
 
 extern void setBrightness(uint8_t level);
 extern void relayTurnOff(void);
 extern void relayTurnOn(void);
-extern void turnOnUSB(void);
-extern void turnOffUSB(void);
 
 static void brightness_slider_event_cb(lv_obj_t *slider, lv_event_t e);
 static void garage_btn_event_cb(lv_obj_t *obj, lv_event_t e);
@@ -18,13 +22,13 @@ void lv_demo_widgets(void)
     // Declare variables at the beginning (C requirement)
     int row_height;
     int panel_width;
-    
+
     // Create LEFT panel - "garage" (50% width) - full height, no top bar
     lv_obj_t *garage_panel = lv_cont_create(lv_scr_act(), NULL);
     lv_obj_set_size(garage_panel, LV_HOR_RES / 2 - 5, LV_VER_RES);
     lv_obj_set_pos(garage_panel, 0, 0);
     lv_cont_set_layout(garage_panel, LV_LAYOUT_CENTER);
-    
+
     // Remove panel background and borders
     static lv_style_t style_transparent;
     lv_style_init(&style_transparent);
@@ -32,7 +36,7 @@ void lv_demo_widgets(void)
     lv_style_set_border_width(&style_transparent, LV_STATE_DEFAULT, 0);
     lv_style_set_pad_all(&style_transparent, LV_STATE_DEFAULT, 0);
     lv_obj_add_style(garage_panel, LV_CONT_PART_MAIN, &style_transparent);
-    
+
     // Style for garage buttons with rounded borders
     static lv_style_t style_garage_btn;
     lv_style_init(&style_garage_btn);
@@ -68,20 +72,20 @@ void lv_demo_widgets(void)
     lv_label_set_text(label2, LV_SYMBOL_STOP);
     lv_obj_add_style(label2, LV_LABEL_PART_MAIN, &style_icon);
 
-    // Button 3: Power icon - optimized for vertical fit using FontAwesome
+    // Button 3: Lightbulb icon - optimized for vertical fit using FontAwesome
     lv_obj_t *btn3 = lv_btn_create(btn_cont, NULL);
     lv_obj_set_size(btn3, 126, 50);
     lv_obj_add_style(btn3, LV_BTN_PART_MAIN, &style_garage_btn);
     lv_obj_set_event_cb(btn3, garage_btn_event_cb);
     lv_obj_t *label3 = lv_label_create(btn3, NULL);
-    
-    // Use FontAwesome font for power icon
+
+    // Use FontAwesome font for lightbulb icon (32px for 2x size)
     static lv_style_t style_fontawesome;
     lv_style_init(&style_fontawesome);
-    lv_style_set_text_font(&style_fontawesome, LV_STATE_DEFAULT, &lv_font_fontawesome_16);
+    lv_style_set_text_font(&style_fontawesome, LV_STATE_DEFAULT, &lv_font_fontawesome_32);
     lv_obj_add_style(label3, LV_LABEL_PART_MAIN, &style_fontawesome);
-    
-    lv_label_set_text(label3, "");  // UTF-8 for FontAwesome power icon (U+F011)
+
+    lv_label_set_text(label3, "");  // FontAwesome lightbulb icon (U+F0EB)
 
     // Button 4: Arrow DOWN (LV_SYMBOL_DOWN) - optimized for vertical fit
     lv_obj_t *btn4 = lv_btn_create(btn_cont, NULL);
@@ -97,88 +101,94 @@ void lv_demo_widgets(void)
     lv_obj_set_size(data_panel, (LV_HOR_RES / 2 - 5) * 0.9, LV_VER_RES);  // 10% narrower, full height
     lv_obj_set_pos(data_panel, LV_HOR_RES / 2 + 5, 0);
     lv_cont_set_layout(data_panel, LV_LAYOUT_COLUMN_LEFT);
-    
-    // Reduce padding between rows
+
+    // Add padding and reduce spacing between rows
     static lv_style_t style_data_panel;
     lv_style_init(&style_data_panel);
     lv_style_set_bg_opa(&style_data_panel, LV_STATE_DEFAULT, LV_OPA_TRANSP);
     lv_style_set_border_width(&style_data_panel, LV_STATE_DEFAULT, 0);
-    lv_style_set_pad_all(&style_data_panel, LV_STATE_DEFAULT, 0);
-    lv_style_set_pad_inner(&style_data_panel, LV_STATE_DEFAULT, 3);  // 30% less padding between rows
+    lv_style_set_pad_top(&style_data_panel, LV_STATE_DEFAULT, 40);      // 40px top padding (was 50px)
+    lv_style_set_pad_bottom(&style_data_panel, LV_STATE_DEFAULT, 50);   // 50px bottom padding
+    lv_style_set_pad_left(&style_data_panel, LV_STATE_DEFAULT, 0);
+    lv_style_set_pad_right(&style_data_panel, LV_STATE_DEFAULT, 0);
+    lv_style_set_pad_inner(&style_data_panel, LV_STATE_DEFAULT, 3);
     lv_obj_add_style(data_panel, LV_CONT_PART_MAIN, &style_data_panel);
-    
-    row_height = LV_VER_RES / 5;  // Divide vertical space into 5 equal rows (brightness + 4 data rows)
-    panel_width = (LV_HOR_RES / 2 - 5) * 0.9;  // Match panel width (10% narrower)
-    
-    // Row 1: brightness slider
+
+    row_height = (LV_VER_RES / 5) * 0.75;  // 25% smaller rows (was 20%)
+    panel_width = (LV_HOR_RES / 2 - 5) * 0.9;
+
+    // Row 1: brightness slider (full width, no label)
     lv_obj_t *row1 = lv_cont_create(data_panel, NULL);
     lv_obj_set_size(row1, panel_width, row_height);
     lv_cont_set_layout(row1, LV_LAYOUT_OFF);
     lv_obj_add_style(row1, LV_CONT_PART_MAIN, &style_transparent);
-    
-    lv_obj_t *bright_label = lv_label_create(row1, NULL);
-    lv_label_set_text(bright_label, "brightness");
-    lv_obj_align(bright_label, row1, LV_ALIGN_IN_LEFT_MID, 5, 0);
-    
+
     lv_obj_t *bright_slider = lv_slider_create(row1, NULL);
     lv_slider_set_value(bright_slider, 120, LV_ANIM_OFF);
     lv_slider_set_range(bright_slider, 0, 255);
-    lv_obj_set_size(bright_slider, 80, 10);
-    lv_obj_align(bright_slider, row1, LV_ALIGN_IN_RIGHT_MID, -5, 0);
+    lv_obj_set_size(bright_slider, panel_width - 10, 10);  // Full width minus margins
+    lv_obj_align(bright_slider, row1, LV_ALIGN_CENTER, 0, 0);
     lv_obj_set_event_cb(bright_slider, brightness_slider_event_cb);
-    
+
     // Row 2: outdoor temperature
     lv_obj_t *row2 = lv_cont_create(data_panel, NULL);
     lv_obj_set_size(row2, panel_width, row_height);
     lv_cont_set_layout(row2, LV_LAYOUT_OFF);
     lv_obj_add_style(row2, LV_CONT_PART_MAIN, &style_transparent);
-    
+
     lv_obj_t *outdoor_label = lv_label_create(row2, NULL);
     lv_label_set_text(outdoor_label, "outdoor");
     lv_obj_align(outdoor_label, row2, LV_ALIGN_IN_LEFT_MID, 5, 0);
-    
+
     lv_obj_t *outdoor_value = lv_label_create(row2, NULL);
     lv_label_set_text(outdoor_value, "20.0º");
+    // Make temperature value bold and 25% larger
+    static lv_style_t style_temp_value;
+    lv_style_init(&style_temp_value);
+    lv_style_set_text_font(&style_temp_value, LV_STATE_DEFAULT, &lv_font_montserrat_22);
+    lv_obj_add_style(outdoor_value, LV_LABEL_PART_MAIN, &style_temp_value);
     lv_obj_align(outdoor_value, row2, LV_ALIGN_IN_RIGHT_MID, -5, 0);
-    
+
     // Row 3: indoor temperature
     lv_obj_t *row3 = lv_cont_create(data_panel, NULL);
     lv_obj_set_size(row3, panel_width, row_height);
     lv_cont_set_layout(row3, LV_LAYOUT_OFF);
     lv_obj_add_style(row3, LV_CONT_PART_MAIN, &style_transparent);
-    
+
     lv_obj_t *indoor_label = lv_label_create(row3, NULL);
     lv_label_set_text(indoor_label, "indoor");
     lv_obj_align(indoor_label, row3, LV_ALIGN_IN_LEFT_MID, 5, 0);
-    
+
     lv_obj_t *indoor_value = lv_label_create(row3, NULL);
     lv_label_set_text(indoor_value, "20.0º");
+    // Make temperature value bold and 25% larger (reuse style from outdoor)
+    lv_obj_add_style(indoor_value, LV_LABEL_PART_MAIN, &style_temp_value);
     lv_obj_align(indoor_value, row3, LV_ALIGN_IN_RIGHT_MID, -5, 0);
-    
+
     // Row 4: entrance switch
     lv_obj_t *row4 = lv_cont_create(data_panel, NULL);
     lv_obj_set_size(row4, panel_width, row_height);
     lv_cont_set_layout(row4, LV_LAYOUT_OFF);
     lv_obj_add_style(row4, LV_CONT_PART_MAIN, &style_transparent);
-    
+
     lv_obj_t *entrance_label = lv_label_create(row4, NULL);
     lv_label_set_text(entrance_label, "entrance");
     lv_obj_align(entrance_label, row4, LV_ALIGN_IN_LEFT_MID, 5, 0);
-    
+
     lv_obj_t *entrance_switch = lv_switch_create(row4, NULL);
     lv_obj_set_size(entrance_switch, 50, 25);
     lv_obj_align(entrance_switch, row4, LV_ALIGN_IN_RIGHT_MID, -5, 0);
-    
+
     // Row 5: cat-door switch
     lv_obj_t *row5 = lv_cont_create(data_panel, NULL);
     lv_obj_set_size(row5, panel_width, row_height);
     lv_cont_set_layout(row5, LV_LAYOUT_OFF);
     lv_obj_add_style(row5, LV_CONT_PART_MAIN, &style_transparent);
-    
+
     lv_obj_t *catdoor_label = lv_label_create(row5, NULL);
     lv_label_set_text(catdoor_label, "cat-door");
     lv_obj_align(catdoor_label, row5, LV_ALIGN_IN_LEFT_MID, 5, 0);
-    
+
     lv_obj_t *catdoor_switch = lv_switch_create(row5, NULL);
     lv_obj_set_size(catdoor_switch, 50, 25);
     lv_obj_align(catdoor_switch, row5, LV_ALIGN_IN_RIGHT_MID, -5, 0);
@@ -198,7 +208,7 @@ static void garage_btn_event_cb(lv_obj_t *obj, lv_event_t e)
         // Get button label to determine which button was clicked
         lv_obj_t *label = lv_obj_get_child(obj, NULL);
         const char *text = lv_label_get_text(label);
-        
+
         // Handle button actions based on symbol
         if (strcmp(text, LV_SYMBOL_UP) == 0) {
             // Arrow UP pressed - open garage
@@ -206,9 +216,13 @@ static void garage_btn_event_cb(lv_obj_t *obj, lv_event_t e)
         } else if (strcmp(text, LV_SYMBOL_STOP) == 0) {
             // STOP pressed - stop garage movement
             relayTurnOff();
-        } else if (strcmp(text, "") == 0) {
-            // Power icon pressed - toggle light (using power icon 0xf011)
-            turnOnUSB();
+        } else if (strcmp(text, "\xEF\xA0\x8B") == 0) {
+            // Lightbulb icon pressed - toggle lightbulb
+            if (lightbulb_get_state()) {
+                lightbulb_off();
+            } else {
+                lightbulb_on();
+            }
         } else if (strcmp(text, LV_SYMBOL_DOWN) == 0) {
             // Arrow DOWN pressed - close garage
             relayTurnOff();
